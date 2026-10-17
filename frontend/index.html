@@ -96,7 +96,7 @@
             <h2 class="text-sm font-bold text-white uppercase tracking-wider">Batch Operations</h2>
             <span id="batchCountBadge" class="px-2 py-0.5 rounded-full text-xs font-medium bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">0 Images</span>
           </div>
-          <p id="batchSubtitle" class="text-xs text-slate-400 mt-0.5">LaMa AI Generative Inpainting selected for flawless, artifact-free watermark removal.</p>
+          <p id="batchSubtitle" class="text-xs text-slate-400 mt-0.5">Adaptive zero-blur restoration selected for instant, artifact-free watermark removal.</p>
         </div>
 
         <!-- Algorithm Settings -->
@@ -104,9 +104,9 @@
           <div class="flex items-center space-x-2 bg-slate-900/90 px-3 py-1.5 rounded-xl border border-slate-800">
             <span class="text-xs text-slate-400">Engine:</span>
             <select id="algoModeSelect" class="bg-transparent text-xs text-slate-200 font-medium focus:outline-none cursor-pointer">
-              <option value="lama" selected class="bg-slate-900">🧠 LaMa Deep Learning AI (State of the Art • Recommended)</option>
-              <option value="smart" class="bg-slate-900">⚡ Adaptive Zero-Blur Restoration (Fast • 30 img/s)</option>
+              <option value="smart" selected class="bg-slate-900">⚡ Adaptive Zero-Blur (Instant • Recommended)</option>
               <option value="hybrid" class="bg-slate-900">🌟 Hybrid Seamless (Poisson Regularizer)</option>
+              <option value="lama" class="bg-slate-900">🧠 LaMa Deep Learning AI (High-RAM)</option>
               <option value="inpaint" class="bg-slate-900">🖌️ Fast Edge Inpainting (Telea)</option>
             </select>
           </div>

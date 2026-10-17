@@ -1,4 +1,4 @@
-﻿import os
+import os
 import cv2
 import numpy as np
 from typing import Optional, Tuple, Dict, Any
@@ -118,9 +118,18 @@ class WatermarkCleaner:
 
         full_mask = np.zeros((h_img, w_img), dtype=np.uint8)
         full_mask[y1:y2, x1:x2] = binary_mask_roi
-        
+
+        # Cloud Free Tier safety:
+        # Render Free tier is strictly limited to 512MB RAM.
+        # Loading and inferring a 208MB FP32 ONNX model requires ~550MB, which triggers Linux SIGKILL 137.
+        # Safely fall back to high-fidelity Hybrid Seamless restoration unless ENABLE_LAMA is explicitly set.
+        is_cloud_free_tier = bool(os.environ.get("PORT") and not os.environ.get("ENABLE_LAMA"))
+        effective_mode = mode
+        if mode == "lama" and (is_cloud_free_tier or not self.lama.is_available()):
+            effective_mode = "hybrid"
+
         # 1. State-of-the-Art Neural Inpainting (LaMa)
-        if mode == "lama" and self.lama.is_available():
+        if effective_mode == "lama" and self.lama.is_available():
             # Pre-remove the known white translucent overlay, then ask LaMa to
             # reconstruct only the remaining uncertain edge/residue pixels.
             pre_restored = image.copy()
@@ -133,12 +142,13 @@ class WatermarkCleaner:
             )
             out_img = self.lama.inpaint(pre_restored, dilated_full_mask)
             
-        elif mode == "inpaint" or (mode == "lama" and not self.lama.is_available()):
+        elif effective_mode == "inpaint":
             dilated = cv2.dilate(binary_mask_roi, cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (5, 5)))
             restored_roi = cv2.inpaint(roi.astype(np.uint8), dilated, 3, cv2.INPAINT_TELEA).astype(np.float32)
             out_img[y1:y2, x1:x2] = restored_roi.astype(np.uint8)
             
-        elif mode in ("smart", "hybrid"):
+        elif effective_mode in ("smart", "hybrid"):
+
             # Local background estimation from perimeter
             bg_local = self._estimate_local_background(roi)
             
@@ -163,7 +173,8 @@ class WatermarkCleaner:
             
         modified_count = int(np.count_nonzero(full_mask))
         metadata = {
-            "mode": mode,
+            "mode": effective_mode,
+            "requested_mode": mode,
             "bbox": [x1, y1, actual_w, actual_h],
             "modified_pixels": modified_count,
             "modified_percent": round(100.0 * modified_count / (w_img * h_img), 3)

@@ -75,8 +75,24 @@ document.addEventListener("DOMContentLoaded", () => {
 
   function getParallelWorkers() {
     const parsed = Number.parseInt(parallelModeSelect.value, 10);
-    if (!Number.isFinite(parsed)) return 4;
+    if (!Number.isFinite(parsed)) return 1;
     return Math.max(1, Math.min(10, parsed));
+  }
+
+  const batchSubtitle = document.getElementById("batchSubtitle");
+  if (algoModeSelect && batchSubtitle) {
+    algoModeSelect.addEventListener("change", () => {
+      const mode = algoModeSelect.value;
+      if (mode === "smart") {
+        batchSubtitle.textContent = "Adaptive zero-blur restoration selected for instant, artifact-free watermark removal.";
+      } else if (mode === "hybrid") {
+        batchSubtitle.textContent = "Hybrid seamless restoration with Poisson edge regularizer.";
+      } else if (mode === "lama") {
+        batchSubtitle.textContent = "LaMa neural AI selected (requires >= 1GB RAM on servers).";
+      } else if (mode === "inpaint") {
+        batchSubtitle.textContent = "OpenCV Telea edge inpainting selected.";
+      }
+    });
   }
 
   // --- 1. UPLOAD & DRAG/DROP ---
