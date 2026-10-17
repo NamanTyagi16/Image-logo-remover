@@ -11,3 +11,5 @@ services:
         value: 3.12.4
       - key: MAX_PARALLEL_WORKERS
         value: 1
+      - key: ORT_INTRA_OP_THREADS
+        value: 1

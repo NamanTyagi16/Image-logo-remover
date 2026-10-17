@@ -23,12 +23,21 @@ from contextlib import asynccontextmanager
 from backend.engine.detector import WatermarkDetector
 from backend.engine.cleaner import WatermarkCleaner
 
+import json
+import gc
+
 detector = WatermarkDetector()
 cleaner = WatermarkCleaner()
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    print("LogoErase API is ready. LaMa model will load on first cleanup.")
+    print("LogoErase API starting up...")
+    try:
+        from scripts.download_model import download_model
+        download_model()
+    except Exception as exc:
+        print(f"Startup model check error: {exc}")
+    print("LogoErase API is ready.")
     yield
 
 app = FastAPI(title="LogoErase Pro API", version="2.1.0", lifespan=lifespan)
@@ -47,7 +56,36 @@ SESSIONS_DIR.mkdir(exist_ok=True)
 
 executor = ThreadPoolExecutor(max_workers=4)
 batches: Dict[str, Dict[str, Any]] = {}
-MAX_PARALLEL_WORKERS = int(os.environ.get("MAX_PARALLEL_WORKERS", 10))
+
+# On Render / cloud containers, default to 1 worker to prevent 512MB RAM OOM crashes
+DEFAULT_WORKERS = 1 if os.environ.get("PORT") else 4
+MAX_PARALLEL_WORKERS = int(os.environ.get("MAX_PARALLEL_WORKERS", DEFAULT_WORKERS))
+
+def save_batch_meta(batch_id: str, batch_dict: Dict[str, Any]):
+    try:
+        sess_file = SESSIONS_DIR / batch_id / "batch.json"
+        with open(sess_file, "w", encoding="utf-8") as f:
+            json.dump(batch_dict, f)
+    except Exception:
+        pass
+
+def load_batch_meta(batch_id: str) -> Optional[Dict[str, Any]]:
+    try:
+        sess_file = SESSIONS_DIR / batch_id / "batch.json"
+        if sess_file.exists():
+            with open(sess_file, "r", encoding="utf-8") as f:
+                return json.load(f)
+    except Exception:
+        pass
+    return None
+
+def get_or_restore_batch(batch_id: str) -> Optional[Dict[str, Any]]:
+    batch = batches.get(batch_id)
+    if not batch:
+        batch = load_batch_meta(batch_id)
+        if batch:
+            batches[batch_id] = batch
+    return batch
 
 def clamp_parallel_workers(value: int) -> int:
     try:
@@ -55,6 +93,7 @@ def clamp_parallel_workers(value: int) -> int:
     except (TypeError, ValueError):
         workers = 1
     return max(1, min(MAX_PARALLEL_WORKERS, workers))
+
 
 def cleanup_old_sessions():
     now = time.time()
@@ -222,6 +261,8 @@ def run_batch_job(batch_id: str, mode: str, sensitivity: float, feather: int, pa
             elapsed = max(0.01, time.time() - batch["start_time"])
             batch["elapsed_sec"] = round(elapsed, 1)
             batch["speed"] = round(processed_count / elapsed, 1)
+            save_batch_meta(batch_id, batch)
+            gc.collect()
 
     if batch.get("canceled", False):
         batch["status"] = "canceled"
@@ -234,6 +275,9 @@ def run_batch_job(batch_id: str, mode: str, sensitivity: float, feather: int, pa
     batch["progress"] = 100.0 if total else 0.0
     batch["elapsed_sec"] = round(elapsed, 1)
     batch["speed"] = round(processed_count / elapsed, 1)
+    save_batch_meta(batch_id, batch)
+    gc.collect()
+
 
 # ---------------- API ROUTES ----------------
 
@@ -305,6 +349,7 @@ async def upload_images(
         "parallel_workers": 1,
         "images": batch_images
     }
+    save_batch_meta(batch_id, batches[batch_id])
     
     return {"batch_id": batch_id, "total": len(batch_images)}
 
@@ -317,7 +362,7 @@ class ProcessRequest(BaseModel):
 
 @app.post("/api/process")
 async def start_processing(req: ProcessRequest, background_tasks: BackgroundTasks):
-    batch = batches.get(req.batch_id)
+    batch = get_or_restore_batch(req.batch_id)
     if not batch:
         raise HTTPException(status_code=404, detail="Batch not found")
         
@@ -331,6 +376,7 @@ async def start_processing(req: ProcessRequest, background_tasks: BackgroundTask
         image["status"] = "pending"
         image.pop("error", None)
         
+    save_batch_meta(req.batch_id, batch)
     background_tasks.add_task(
         run_batch_job,
         batch_id=req.batch_id,
@@ -344,14 +390,14 @@ async def start_processing(req: ProcessRequest, background_tasks: BackgroundTask
 
 @app.get("/api/batch/{batch_id}/status")
 async def get_batch_status(batch_id: str):
-    batch = batches.get(batch_id)
+    batch = get_or_restore_batch(batch_id)
     if not batch:
         raise HTTPException(status_code=404, detail="Batch not found")
     return batch
 
 @app.get("/api/image/{batch_id}/{img_id}")
 async def get_image(batch_id: str, img_id: str, type: str = "processed"):
-    batch = batches.get(batch_id)
+    batch = get_or_restore_batch(batch_id)
     if not batch or img_id not in batch["images"]:
         raise HTTPException(status_code=404, detail="Image not found")
         
@@ -377,7 +423,7 @@ class ReprocessRequest(BaseModel):
 
 @app.post("/api/reprocess")
 def reprocess_image(req: ReprocessRequest):
-    batch = batches.get(req.batch_id)
+    batch = get_or_restore_batch(req.batch_id)
     if not batch or req.img_id not in batch["images"]:
         raise HTTPException(status_code=404, detail="Image not found")
         
@@ -391,13 +437,14 @@ def reprocess_image(req: ReprocessRequest):
         custom_bbox=req.bbox,
         feather=req.feather
     )
+    save_batch_meta(req.batch_id, batch)
     if res["status"] == "error":
         raise HTTPException(status_code=500, detail=res.get("error", "Re-clean failed"))
     return res
 
 @app.get("/api/download/{batch_id}/{img_id}")
 async def download_image(batch_id: str, img_id: str):
-    batch = batches.get(batch_id)
+    batch = get_or_restore_batch(batch_id)
     if not batch or img_id not in batch["images"]:
         raise HTTPException(status_code=404, detail="Image not found")
         
@@ -407,7 +454,7 @@ async def download_image(batch_id: str, img_id: str):
 
 @app.get("/api/download-zip/{batch_id}")
 def download_batch_zip(batch_id: str):
-    batch = batches.get(batch_id)
+    batch = get_or_restore_batch(batch_id)
     if not batch:
         raise HTTPException(status_code=404, detail="Batch not found")
         

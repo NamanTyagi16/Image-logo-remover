@@ -19,6 +19,7 @@ class LaMaInpainter:
         self.session = None
         self.active_provider = None
         self._init_lock = threading.Lock()
+        self._infer_lock = threading.Lock()
 
     def _select_providers(self):
         import onnxruntime as ort
@@ -29,6 +30,19 @@ class LaMaInpainter:
             "CPUExecutionProvider",
         ]
         return [provider for provider in preferred if provider in available]
+
+    def _get_session_options(self):
+        import onnxruntime as ort
+
+        opts = ort.SessionOptions()
+        # Disable memory arena pooling to prevent ONNX Runtime from hogging 500MB+ RAM
+        opts.enable_cpu_mem_arena = False
+        opts.execution_mode = ort.ExecutionMode.ORT_SEQUENTIAL
+        # Keep thread count minimal to prevent RAM spikes on 512MB cloud instances
+        threads = int(os.environ.get("ORT_INTRA_OP_THREADS", "1"))
+        opts.intra_op_num_threads = threads
+        opts.inter_op_num_threads = 1
+        return opts
 
     def _lazy_init(self):
         if self.session is not None:
@@ -52,8 +66,7 @@ class LaMaInpainter:
 
             import onnxruntime as ort
 
-            opts = ort.SessionOptions()
-            opts.intra_op_num_threads = 4
+            opts = self._get_session_options()
             providers = self._select_providers() or ["CPUExecutionProvider"]
             self.session = ort.InferenceSession(
                 self.model_path,
@@ -69,8 +82,7 @@ class LaMaInpainter:
     def _force_cpu_session(self):
         import onnxruntime as ort
 
-        opts = ort.SessionOptions()
-        opts.intra_op_num_threads = 4
+        opts = self._get_session_options()
         self.session = ort.InferenceSession(
             self.model_path,
             sess_options=opts,
@@ -134,14 +146,16 @@ class LaMaInpainter:
         img_tensor = np.expand_dims(img_rgb.transpose(2, 0, 1), axis=0)
         mask_tensor = np.expand_dims(np.expand_dims(mask_f, axis=0), axis=0)
 
-        try:
-            out_raw = self.session.run(None, {"image": img_tensor, "mask": mask_tensor})[0]
-        except Exception:
-            if self.active_provider != "CPUExecutionProvider":
-                self._force_cpu_session()
+        with self._infer_lock:
+            try:
                 out_raw = self.session.run(None, {"image": img_tensor, "mask": mask_tensor})[0]
-            else:
-                raise
+            except Exception:
+                if self.active_provider != "CPUExecutionProvider":
+                    self._force_cpu_session()
+                    out_raw = self.session.run(None, {"image": img_tensor, "mask": mask_tensor})[0]
+                else:
+                    raise
+
 
         out_patch = np.clip(out_raw[0].transpose(1, 2, 0), 0, 255).astype(np.uint8)
         out_bgr = cv2.cvtColor(out_patch, cv2.COLOR_RGB2BGR)

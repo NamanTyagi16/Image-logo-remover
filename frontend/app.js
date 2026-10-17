@@ -1,4 +1,4 @@
-﻿// LogoErase Pro - Client Application
+// LogoErase Pro - Client Application
 document.addEventListener("DOMContentLoaded", () => {
   // Initialize Lucide icons
   if (window.lucide) lucide.createIcons();
@@ -158,11 +158,17 @@ document.addEventListener("DOMContentLoaded", () => {
       const res = await fetch(`/api/batch/${batchId}/status`);
       if (batchId !== state.batchId) return;
       if (res.status === 404) {
+        state.notFoundCount = (state.notFoundCount || 0) + 1;
+        if (state.notFoundCount < 5) {
+          console.warn(`Batch status 404 attempt ${state.notFoundCount}/5`);
+          return;
+        }
         clearInterval(state.pollInterval);
         state.pollInterval = null;
         state.batchId = null;
         throw new Error("This batch has expired or the server restarted. Please upload your images again.");
       }
+      state.notFoundCount = 0;
       if (!res.ok) throw new Error("Unable to read progress. Retrying...");
       const data = await res.json();
       if (batchId !== state.batchId) return;
