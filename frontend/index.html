@@ -1,0 +1,283 @@
+﻿<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>LogoErase Pro — Intelligent Batch Watermark Removal</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <link rel="stylesheet" href="styles.css">
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              50: '#eef2ff',
+              500: '#6366f1',
+              600: '#4f46e5',
+              700: '#4338ca',
+            }
+          }
+        }
+      }
+    }
+  </script>
+</head>
+<body class="bg-slate-950 text-slate-100 flex flex-col min-h-screen selection:bg-indigo-500 selection:text-white">
+
+  <!-- Navbar -->
+  <header class="glass-nav sticky top-0 z-40 px-6 py-3.5 flex items-center justify-between border-b border-slate-800">
+    <div class="flex items-center space-x-3">
+      <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-indigo-600 to-violet-500 flex items-center justify-center shadow-lg shadow-indigo-500/20 ring-1 ring-white/20">
+        <i data-lucide="sparkles" class="w-5 h-5 text-white"></i>
+      </div>
+      <div>
+        <div class="flex items-center space-x-2">
+          <h1 class="font-bold text-lg tracking-tight bg-gradient-to-r from-white via-slate-200 to-indigo-200 bg-clip-text text-transparent">LogoErase Pro</h1>
+          <span class="text-[10px] uppercase font-semibold tracking-wider px-2 py-0.5 rounded-full bg-indigo-500/10 text-indigo-400 border border-indigo-500/20">v2.1 State-of-the-Art</span>
+        </div>
+        <p class="text-xs text-slate-400">Deep Learning AI (LaMa Fourier Inpainting) & Adaptive Zero-Blur Detail Restoration</p>
+      </div>
+    </div>
+
+    <div class="flex items-center space-x-3">
+      <div class="flex items-center space-x-1 px-2.5 py-1 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs">
+        <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+        <span class="font-medium">LaMa Deep AI Active</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Container -->
+  <main class="flex-1 max-w-7xl w-full mx-auto px-6 py-6 space-y-6">
+
+    <!-- Upload Dropzone Section -->
+    <section id="uploadSection" class="relative group">
+      <div id="dropzone" class="glass-panel border-2 border-dashed border-slate-700 hover:border-indigo-500/60 rounded-2xl p-8 text-center transition-all duration-300 cursor-pointer hover:bg-slate-900/50">
+        <input type="file" id="fileInput" multiple accept=".jpg,.jpeg,.png,.webp" class="hidden">
+        <input type="file" id="folderInput" webkitdirectory directory multiple class="hidden">
+
+        <div class="max-w-md mx-auto space-y-4">
+          <div class="w-16 h-16 mx-auto rounded-2xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-400 group-hover:scale-110 group-hover:text-indigo-300 transition-all shadow-lg shadow-indigo-500/10">
+            <i data-lucide="upload-cloud" class="w-8 h-8"></i>
+          </div>
+          <div>
+            <h3 class="text-base font-semibold text-white">Drag & drop images or entire folder here</h3>
+            <p class="text-xs text-slate-400 mt-1">Supports JPG, PNG, WebP & large batches (100+ images)</p>
+          </div>
+
+          <div class="flex items-center justify-center space-x-3 pt-2">
+            <button type="button" id="browseFilesBtn" class="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-semibold text-slate-200 border border-slate-700 hover:border-slate-600 transition flex items-center space-x-2">
+              <i data-lucide="files" class="w-4 h-4 text-indigo-400"></i>
+              <span>Select Files</span>
+            </button>
+            <button type="button" id="browseFolderBtn" class="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-semibold text-slate-200 border border-slate-700 hover:border-slate-600 transition flex items-center space-x-2">
+              <i data-lucide="folder" class="w-4 h-4 text-amber-400"></i>
+              <span>Select Folder</span>
+            </button>
+          </div>
+
+          <div class="flex items-center justify-center space-x-4 text-[11px] text-slate-400 pt-3 border-t border-slate-800/80">
+            <span class="flex items-center space-x-1"><i data-lucide="shield-check" class="w-3.5 h-3.5 text-emerald-400"></i><span>Zero Black Residuals</span></span>
+            <span class="flex items-center space-x-1"><i data-lucide="cpu" class="w-3.5 h-3.5 text-indigo-400"></i><span>LaMa Fourier Deep AI</span></span>
+            <span class="flex items-center space-x-1"><i data-lucide="maximize" class="w-3.5 h-3.5 text-emerald-400"></i><span>100% Dimensions & Sharpness</span></span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Batch Control & Progress Panel (Hidden until images loaded) -->
+    <section id="batchControlsPanel" class="hidden glass-panel rounded-2xl p-5 border border-slate-800 space-y-4 shadow-xl">
+      <div class="flex flex-wrap items-center justify-between gap-4">
+        <div>
+          <div class="flex items-center space-x-2">
+            <h2 class="text-sm font-bold text-white uppercase tracking-wider">Batch Operations</h2>
+            <span id="batchCountBadge" class="px-2 py-0.5 rounded-full text-xs font-medium bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">0 Images</span>
+          </div>
+          <p id="batchSubtitle" class="text-xs text-slate-400 mt-0.5">LaMa AI Generative Inpainting selected for flawless, artifact-free watermark removal.</p>
+        </div>
+
+        <!-- Algorithm Settings -->
+        <div class="flex items-center space-x-3">
+          <div class="flex items-center space-x-2 bg-slate-900/90 px-3 py-1.5 rounded-xl border border-slate-800">
+            <span class="text-xs text-slate-400">Engine:</span>
+            <select id="algoModeSelect" class="bg-transparent text-xs text-slate-200 font-medium focus:outline-none cursor-pointer">
+              <option value="lama" selected class="bg-slate-900">🧠 LaMa Deep Learning AI (State of the Art • Recommended)</option>
+              <option value="smart" class="bg-slate-900">⚡ Adaptive Zero-Blur Restoration (Fast • 30 img/s)</option>
+              <option value="hybrid" class="bg-slate-900">🌟 Hybrid Seamless (Poisson Regularizer)</option>
+              <option value="inpaint" class="bg-slate-900">🖌️ Fast Edge Inpainting (Telea)</option>
+            </select>
+          </div>
+
+          <div class="flex items-center space-x-2 bg-slate-900/90 px-3 py-1.5 rounded-xl border border-slate-800">
+            <span class="text-xs text-slate-400">Parallel:</span>
+            <select id="parallelModeSelect" class="bg-transparent text-xs text-slate-200 font-medium focus:outline-none cursor-pointer">
+              <option value="1" class="bg-slate-900">1 Safe</option>
+              <option value="2" class="bg-slate-900">2 Balanced</option>
+              <option value="3" class="bg-slate-900">3 Fast</option>
+              <option value="4" selected class="bg-slate-900">4 Very Fast</option>
+              <option value="5" class="bg-slate-900">5</option>
+              <option value="6" class="bg-slate-900">6</option>
+              <option value="7" class="bg-slate-900">7</option>
+              <option value="8" class="bg-slate-900">8</option>
+              <option value="9" class="bg-slate-900">9</option>
+              <option value="10" class="bg-slate-900">10 Max</option>
+            </select>
+          </div>
+
+          <button id="startBatchBtn" class="flex items-center space-x-2 px-5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-xs font-semibold text-white shadow-lg shadow-indigo-600/30 transition">
+            <i data-lucide="play" class="w-4 h-4 fill-white"></i>
+            <span>Start Batch Cleaning</span>
+          </button>
+
+          <button id="downloadZipBtn" disabled class="flex items-center space-x-2 px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 disabled:opacity-40 disabled:hover:bg-slate-800 text-xs font-semibold text-slate-200 border border-slate-700 transition">
+            <i data-lucide="download" class="w-4 h-4 text-emerald-400"></i>
+            <span>Download All (ZIP)</span>
+          </button>
+
+          <button id="clearAllBtn" class="p-2 rounded-xl bg-slate-800 hover:bg-rose-500/20 hover:text-rose-400 text-slate-400 border border-slate-700 transition" title="Clear all">
+            <i data-lucide="trash-2" class="w-4 h-4"></i>
+          </button>
+        </div>
+      </div>
+
+      <!-- Real-time Progress Bar & Stats -->
+      <div id="progressContainer" class="space-y-2 pt-2 border-t border-slate-800/80">
+        <div class="flex items-center justify-between text-xs">
+          <div class="flex items-center space-x-2">
+            <span id="progressStatusText" class="font-medium text-slate-300">Ready to start</span>
+            <span id="currentFilenameText" class="text-slate-500 max-w-xs truncate"></span>
+          </div>
+          <div class="flex items-center space-x-4 text-slate-400">
+            <span id="speedStat">Speed: -- img/s</span>
+            <span id="timeStat">Elapsed: 0s</span>
+            <span id="progressPercent" class="font-bold text-indigo-400">0%</span>
+          </div>
+        </div>
+        <div class="w-full h-2.5 bg-slate-900 rounded-full overflow-hidden p-0.5 border border-slate-800">
+          <div id="progressBar" class="h-full bg-gradient-to-r from-indigo-500 via-violet-500 to-emerald-400 rounded-full w-0 transition-all duration-200"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Gallery & Filter Section (Hidden until images loaded) -->
+    <section id="gallerySection" class="hidden space-y-4">
+      <div class="flex items-center justify-between">
+        <!-- Filter Tabs -->
+        <div class="flex items-center space-x-1 p-1 rounded-xl bg-slate-900/80 border border-slate-800">
+          <button data-filter="all" class="filter-tab active px-3 py-1 rounded-lg text-xs font-semibold bg-indigo-600 text-white transition">
+            All (<span id="countAll">0</span>)
+          </button>
+          <button data-filter="completed" class="filter-tab px-3 py-1 rounded-lg text-xs font-medium text-slate-400 hover:text-slate-200 transition">
+            Cleaned (<span id="countCompleted">0</span>)
+          </button>
+          <button data-filter="flagged" class="filter-tab px-3 py-1 rounded-lg text-xs font-medium text-slate-400 hover:text-slate-200 transition">
+            Flagged Review (<span id="countFlagged">0</span>)
+          </button>
+        </div>
+
+        <div class="text-xs text-slate-400 flex items-center space-x-2">
+          <span>Click any card to open the Before/After split comparison slider</span>
+        </div>
+      </div>
+
+      <!-- Image Cards Grid -->
+      <div id="imageGrid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+      </div>
+    </section>
+
+  </main>
+
+  <!-- Interactive Before/After Inspection Modal -->
+  <div id="compareModal" class="fixed inset-0 z-50 bg-black/85 backdrop-blur-md hidden flex items-center justify-center p-4 md:p-6">
+    <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-6xl w-full max-h-[95vh] flex flex-col overflow-hidden shadow-2xl">
+      
+      <!-- Modal Header -->
+      <div class="px-5 py-3.5 border-b border-slate-800 flex items-center justify-between bg-slate-950/80">
+        <div class="flex items-center space-x-3">
+          <div class="w-7 h-7 rounded-lg bg-indigo-500/20 text-indigo-400 flex items-center justify-center">
+            <i data-lucide="split" class="w-4 h-4"></i>
+          </div>
+          <div>
+            <h3 id="modalFilename" class="text-sm font-bold text-white truncate max-w-md">Image Preview</h3>
+            <p id="modalMeta" class="text-[11px] text-slate-400">Drag center slider to inspect before & after reconstruction</p>
+          </div>
+        </div>
+
+        <div class="flex items-center space-x-2">
+          <button id="modalPrevBtn" class="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300" title="Previous Image">
+            <i data-lucide="chevron-left" class="w-4 h-4"></i>
+          </button>
+          <button id="modalNextBtn" class="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300" title="Next Image">
+            <i data-lucide="chevron-right" class="w-4 h-4"></i>
+          </button>
+          <div class="w-px h-5 bg-slate-800"></div>
+          <button id="modalDownloadBtn" class="flex items-center space-x-1.5 px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-xs font-semibold text-white shadow">
+            <i data-lucide="download" class="w-3.5 h-3.5"></i>
+            <span>Download</span>
+          </button>
+          <button id="closeModalBtn" class="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white transition">
+            <i data-lucide="x" class="w-5 h-5"></i>
+          </button>
+        </div>
+      </div>
+
+      <!-- Comparison Viewport -->
+      <div class="flex-1 bg-slate-950 overflow-hidden relative flex items-center justify-center p-2 min-h-[450px]">
+        <div id="comparisonContainer" class="comparison-container rounded-xl border border-slate-800/80 max-h-[70vh]">
+          <div class="comparison-image-wrapper">
+            <img id="processedImg" class="comparison-image" src="" alt="Processed">
+            
+            <div id="comparisonOverlay" class="comparison-overlay">
+              <img id="originalImg" src="" alt="Original">
+            </div>
+
+            <div id="sliderHandle" class="slider-handle">
+              <div class="slider-button">
+                <i data-lucide="chevrons-left-right" class="w-4 h-4"></i>
+              </div>
+            </div>
+
+            <div id="bboxMarker" class="bbox-marker hidden" title="Detected watermark region"></div>
+          </div>
+        </div>
+
+        <div class="absolute top-4 left-4 pointer-events-none px-2.5 py-1 rounded-lg bg-black/60 backdrop-blur-md text-[11px] font-semibold text-slate-300 border border-white/10">
+          ◀ Original (Left) | Cleaned (Right) ▶
+        </div>
+      </div>
+
+      <!-- Modal Footer & Fine-tune Toolbar -->
+      <div class="px-5 py-3 border-t border-slate-800 bg-slate-950/90 flex flex-wrap items-center justify-between gap-3 text-xs">
+        <div class="flex items-center space-x-3">
+          <label class="flex items-center space-x-1.5 text-slate-300 cursor-pointer">
+            <input type="checkbox" id="showBboxToggle" class="rounded bg-slate-800 border-slate-700 text-indigo-500 focus:ring-0">
+            <span>Highlight Watermark Region</span>
+          </label>
+          <span class="text-slate-600">|</span>
+          <span id="detectedCoords" class="text-slate-400">Coords: [1246, 639, 64, 64]</span>
+        </div>
+
+        <div class="flex items-center space-x-2">
+          <span class="text-slate-400">Engine:</span>
+          <select id="recleanModeSelect" class="bg-slate-800 text-slate-200 px-2.5 py-1 rounded-lg border border-slate-700 focus:outline-none">
+            <option value="lama" selected>🧠 LaMa Deep Learning AI</option>
+            <option value="smart">⚡ Adaptive Zero-Blur Restoration</option>
+            <option value="hybrid">🌟 Hybrid Seamless</option>
+            <option value="inpaint">🖌️ Deep Inpaint</option>
+          </select>
+          <button id="recleanBtn" class="px-3 py-1 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white font-medium shadow transition flex items-center space-x-1">
+            <i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i>
+            <span>Re-clean Image</span>
+          </button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>

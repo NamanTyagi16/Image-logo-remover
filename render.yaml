@@ -1,0 +1,13 @@
+services:
+  - type: web
+    name: logoerase-pro
+    runtime: python
+    plan: free
+    buildCommand: pip install -r requirements.txt && python scripts/download_model.py
+    startCommand: uvicorn backend.app:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /api/health
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.12.4
+      - key: MAX_PARALLEL_WORKERS
+        value: 1

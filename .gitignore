@@ -1,0 +1,28 @@
+# Python virtual environments
+.venv/
+venv/
+env/
+ENV/
+
+# Python cache & artifacts
+__pycache__/
+*.py[cod]
+*$py.class
+*.pyd
+
+# Large ONNX Model (GitHub 100MB limit - auto-downloaded on Render during build)
+backend/models/lama_fp32.onnx
+
+# Upload sessions & processed output
+sessions/*
+!sessions/.gitkeep
+
+# Local preview & scratch files
+.preview/
+scratch/
+*.log
+
+# Operating system files
+.DS_Store
+Thumbs.db
+desktop.ini

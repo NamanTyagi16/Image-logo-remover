@@ -1,0 +1,142 @@
+﻿/* Custom styles for LogoErase Pro */
+:root {
+  --primary: #4f46e5;
+  --primary-hover: #4338ca;
+  --accent: #06b6d4;
+  --bg-dark: #0f172a;
+  --card-dark: #1e293b;
+  --border-dark: #334155;
+}
+
+body {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  background-color: #0b0f19;
+  color: #f1f5f9;
+  min-height: 100vh;
+}
+
+/* Glassmorphism */
+.glass-panel {
+  background: rgba(30, 41, 59, 0.7);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.glass-nav {
+  background: rgba(15, 23, 42, 0.85);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+/* Dropzone dash animation */
+.dropzone-active {
+  border-color: #6366f1 !important;
+  background: rgba(99, 102, 241, 0.08) !important;
+  transform: scale(1.005);
+}
+
+/* Comparison Slider */
+.comparison-container {
+  position: relative;
+  overflow: hidden;
+  user-select: none;
+  background: #000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.comparison-image-wrapper {
+  position: relative;
+  max-width: 100%;
+  max-height: 70vh;
+}
+
+.comparison-image {
+  display: block;
+  max-width: 100%;
+  max-height: 70vh;
+  object-fit: contain;
+  pointer-events: none;
+}
+
+.comparison-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  width: 50%;
+  overflow: hidden;
+}
+
+.comparison-overlay img {
+  position: absolute;
+  top: 0;
+  left: 0;
+  max-width: none;
+  height: 100%;
+  object-fit: contain;
+  pointer-events: none;
+}
+
+.slider-handle {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 3px;
+  background: #ffffff;
+  box-shadow: 0 0 12px rgba(0, 0, 0, 0.6);
+  cursor: ew-resize;
+  z-index: 30;
+}
+
+.slider-button {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: #ffffff;
+  color: #0f172a;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.4);
+  cursor: ew-resize;
+}
+
+/* Bounding box marker */
+.bbox-marker {
+  position: absolute;
+  border: 2px dashed #f59e0b;
+  background: rgba(245, 158, 11, 0.15);
+  box-shadow: 0 0 10px rgba(245, 158, 11, 0.4);
+  cursor: move;
+  z-index: 25;
+  transition: border-color 0.15s, background-color 0.15s;
+}
+
+.bbox-marker:hover {
+  border-color: #10b981;
+  background: rgba(16, 185, 129, 0.2);
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: #0f172a;
+}
+::-webkit-scrollbar-thumb {
+  background: #334155;
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #475569;
+}
